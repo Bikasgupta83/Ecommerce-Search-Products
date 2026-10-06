@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debouncing</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    
+    
+    <script>
+        let searchInput = document.createElement("input");
+        let container = document.createElement("div");
+
+        searchInput.placeholder = "Search products...";
+
+        let products = [];
+
+        async function getProducts() {
+            try {
+                let response = await fetch("https://dummyjson.com/products");
+
+                let data = await response.json();
+
+                products = data.products;
+
+                renderProduct(products);
+
+            } catch (error) {
+                console.log(error);
+                window.alert(error);
+            }
+        }
+
+
+
+
+        function productDetails(product) {
+            let productDetailsContainer = document.createElement("div");
+            let leftHandContainer = document.createElement("div");
+            let rightHandContainer = document.createElement("div");
+
+            let closeBtn = document.createElement("h1");
+
+            closeBtn.innerText = "❌";
+            closeBtn.classList.add("closeBtn");
+            productDetailsContainer.classList.add("productDetailsContainer");
+            leftHandContainer.classList.add("leftHandContainer");
+            rightHandContainer.classList.add("rightHandContainer");
+
+            closeBtn.addEventListener("click", () => {
+                productDetailsContainer.classList.toggle("display");
+            })
+
+
+            //leftHandContainer
+            let mainImg = document.createElement("img");
+            mainImg.classList.add("mainImg");
+
+            mainImg.setAttribute("src", product.images[0]);
+            mainImg.width = "400";
+            mainImg.height = "400";
+
+            leftHandContainer.appendChild(mainImg)
+
+            let images = product.images;
+            images.forEach(img => {
+                let miniImgContainer = document.createElement("div");
+                let miniImg = document.createElement("img");
+
+                miniImg.classList.add("miniImg");
+                miniImgContainer.classList.add("miniImgContainer");
+
+                miniImg.setAttribute("src", img);
+                miniImg.width = "100";
+                miniImg.height = "100";
+
+                miniImg.addEventListener("click", () => {
+                    mainImg.setAttribute("src", img);
+                })
+
+                miniImgContainer.append(miniImg);
+                leftHandContainer.append(miniImgContainer);
+
+            });
+
+
+
+
+            // rightHandContainer
+            let brand = document.createElement("h3");
+            let productName = document.createElement("h1");
+            let description = document.createElement("h1");
+            let ratingContainer = document.createElement("div");
+            let price = document.createElement("h2");
+            let discountPercentage = document.createElement("h2");
+            let priceContainer = document.createElement("div");
+            let btnContainer = document.createElement("div");
+            let addToCart = document.createElement("button")
+            let buyNow = document.createElement("button")
+
+            brand.classList.add("brand");
+            productName.classList.add("productName");
+            ratingContainer.classList.add("ratingContainer");
+            price.classList.add("price");
+            description.classList.add("description");
+            discountPercentage.classList.add("discountPercentage");
+            priceContainer.classList.add("priceContainer");
+            btnContainer.classList.add("btnContainer");
+
+            brand.innerText = (product.brand) !== undefined ? product.brand : "";
+            productName.innerText = product.title;
+            description.innerText = product.description;
+            addToCart.innerText = "Add To Cart";
+            buyNow.innerText = "Buy Now";
+
+
+            let rating = Math.floor(product.rating * 2) / 2;  //3.96 -> 3.50
+            let fullStars = Math.floor(rating);  // 3
+            let halfStar = rating % 1 !== 0;
+
+            ratingContainer.innerText = "Ratings"
+            ratingContainer.innerText += "⭐".repeat(fullStars);
+
+            if (halfStar) {
+                ratingContainer.innerText += "½";
+            }
+
+
+            discountPercentage.innerText = `(- ${product.discountPercentage} %)`;
+            price.innerText = `$ ${product.price}`;
+
+            btnContainer.append(addToCart, buyNow);
+            priceContainer.append(discountPercentage, price);
+            rightHandContainer.append(brand, productName, description, ratingContainer, priceContainer, btnContainer);
+            productDetailsContainer.append(leftHandContainer, rightHandContainer);
+            productDetailsContainer.appendChild(closeBtn);
+            document.body.append(productDetailsContainer);
+        }
+
+
+        function renderProduct(products) {
+            container.innerHTML = "";
+
+            products.forEach(product => {
+
+                let ProductContainer = document.createElement("div");
+
+                ProductContainer.classList.add("ProductContainer");
+
+                ProductContainer.innerHTML = `
+                            <div class="product">
+
+                                <div class="ProductImg">
+                                    <img 
+                                        src="${product.thumbnail}" 
+                                        alt="${product.title}"
+                                        width="150"
+                                    />   
+                                </div>
+
+                                <p>${(product.brand) !== undefined ? product.brand : ""}</p>
+                                <h3>${product.title}</h3>
+                                <h4><span>$ <span/>${product.price}</h4>
+                            </div>
+                `;
+
+
+                ProductContainer.addEventListener("click", () => {
+                    productDetails(product);
+                });
+
+                container.append(ProductContainer);
+            });
+        }
+
+        let suggestionContainer = document.createElement("div");
+        suggestionContainer.classList.add("suggestionContainer");
+
+
+
+        function showSuggestions(value) {
+
+            suggestionContainer.innerHTML = "";
+
+            if (value === "") {
+                return;
+            }
+
+            let suggestions = products.filter((product) => {
+                return product.title.toLowerCase().includes(value);
+            });
+
+            suggestions.slice(0, 5).forEach(product => {
+
+                let suggestion = document.createElement("div");
+                let suggestThumbnail = document.createElement("img");
+                let productTitle = document.createElement("span");
+
+                suggestion.classList.add("suggestion");
+
+                suggestThumbnail.setAttribute("src", product.thumbnail);
+                suggestThumbnail.width = 50;
+                suggestThumbnail.height = 50;
+
+                productTitle.innerText = product.title;
+
+                suggestion.append(suggestThumbnail, productTitle);
+
+                suggestion.addEventListener("click", () => {
+                    searchInput.value = product.title;
+                    suggestionContainer.innerHTML = "";
+                    renderProduct([product]);
+                });
+
+                suggestionContainer.append(suggestion);
+            });
+        }
+
+
+        let searchTimerId;
+        searchInput.addEventListener("input", () => {
+            clearTimeout(searchTimerId);
+
+            searchTimerId = setTimeout(() => {
+                let value = searchInput.value.toLowerCase().trim();
+
+                showSuggestions(value);
+
+                let filterProducts = products.filter((product) =>
+                    product.title.toLowerCase().includes(value)
+                )
+
+                renderProduct(filterProducts)
+            }, 500)
+        })
+
+
+        document.body.append(searchInput, suggestionContainer, container);
+        getProducts();
+    </script>
+</body>
+
+</html>
